@@ -1,0 +1,25 @@
+name: PR checks
+
+on:
+  pull_request:
+
+jobs:
+  validate-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: Run shellcheck
+        run: shellcheck scripts/*.sh
+
+      - name: Run mocked deploy test
+        run: ./scripts/test-deploy.sh

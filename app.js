@@ -1,10 +1,19 @@
+const DEPLOY_S3_BUCKET_NAME = '__DEPLOY_S3_BUCKET_NAME__';
+const DEPLOY_S3_REGION = '__DEPLOY_S3_REGION__';
+const DEPLOY_TRACKS_PREFIX = '__DEPLOY_TRACKS_PREFIX__';
+const DEPLOY_ENABLE_MOCK_MODE = '__DEPLOY_ENABLE_MOCK_MODE__';
+
 const CONFIG = {
-  bucketName: 'YOUR_PUBLIC_BUCKET_NAME',
-  region: 'us-east-1',
+  bucketName: DEPLOY_S3_BUCKET_NAME.startsWith('__DEPLOY_')
+    ? 'YOUR_PUBLIC_BUCKET_NAME'
+    : DEPLOY_S3_BUCKET_NAME,
+  region: DEPLOY_S3_REGION.startsWith('__DEPLOY_') ? 'us-east-1' : DEPLOY_S3_REGION,
   // Optional: set to a path like "tracks/" if your files are inside a folder.
-  prefix: '',
+  prefix: DEPLOY_TRACKS_PREFIX.startsWith('__DEPLOY_') ? '' : DEPLOY_TRACKS_PREFIX,
   // If true and bucketName is not configured, the site renders test entries.
-  enableMockMode: true,
+  enableMockMode: DEPLOY_ENABLE_MOCK_MODE.startsWith('__DEPLOY_')
+    ? true
+    : DEPLOY_ENABLE_MOCK_MODE === 'true',
 };
 
 const MOCK_TRACKS = [
