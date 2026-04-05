@@ -26,8 +26,9 @@ When you are ready to use your real bucket:
 This repo now includes `.github/workflows/deploy-pages.yml`.
 
 1. Push to `main`.
-2. In GitHub, go to **Settings → Pages** and set **Source** to **GitHub Actions**.
-3. The workflow will publish the static site.
+2. If Pages is not already enabled, the workflow attempts to enable GitHub Pages automatically.
+3. If your org/repo policy blocks auto-enable, go to **Settings → Pages** and set **Source** to **GitHub Actions** manually.
+4. The workflow will publish the static site.
 
 ## Run locally
 
