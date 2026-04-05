@@ -1,11 +1,36 @@
-const CONFIG = {
-  bucketName: 'YOUR_PUBLIC_BUCKET_NAME',
-  region: 'us-east-1',
-  // Optional: set to a path like "tracks/" if your files are inside a folder.
-  prefix: '',
-  // If true and bucketName is not configured, the site renders test entries.
-  enableMockMode: true,
+const TOKEN_S3_BUCKET_NAME = '__S3_BUCKET_NAME__';
+const TOKEN_S3_REGION = '__S3_REGION__';
+const TOKEN_TRACKS_PREFIX = '__TRACKS_PREFIX__';
+const TOKEN_ENABLE_MOCK_MODE = '__ENABLE_MOCK_MODE__';
+
+const DEPLOY_CONFIG_TOKENS = {
+  bucketName: TOKEN_S3_BUCKET_NAME,
+  region: TOKEN_S3_REGION,
+  tracksPrefix: TOKEN_TRACKS_PREFIX,
+  enableMockMode: TOKEN_ENABLE_MOCK_MODE,
 };
+
+const CONFIG = {
+  bucketName:
+    DEPLOY_CONFIG_TOKENS.bucketName === TOKEN_S3_BUCKET_NAME
+      ? 'YOUR_PUBLIC_BUCKET_NAME'
+      : DEPLOY_CONFIG_TOKENS.bucketName,
+  region:
+    DEPLOY_CONFIG_TOKENS.region === TOKEN_S3_REGION
+      ? 'us-east-1'
+      : DEPLOY_CONFIG_TOKENS.region,
+  // Optional: set to a path like "tracks/" if your files are inside a folder.
+  prefix:
+    DEPLOY_CONFIG_TOKENS.tracksPrefix === TOKEN_TRACKS_PREFIX
+      ? ''
+      : DEPLOY_CONFIG_TOKENS.tracksPrefix,
+  // If true and bucketName is not configured, the site renders test entries.
+  enableMockMode:
+    DEPLOY_CONFIG_TOKENS.enableMockMode === TOKEN_ENABLE_MOCK_MODE
+      ? true
+      : DEPLOY_CONFIG_TOKENS.enableMockMode === 'true',
+};
+
 
 const MOCK_TRACKS = [
   {
