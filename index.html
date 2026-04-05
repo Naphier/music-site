@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Music Track Listing</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="artist-header">
+        <h1>Your Artist Name Here</h1>
+        <p>
+          Add your personal artist bio, social links, booking contact, or release
+          notes in this section.
+        </p>
+      </header>
+
+      <section class="toolbar" aria-label="Track sorting options">
+        <label for="sortBy">Sort tracks</label>
+        <select id="sortBy">
+          <option value="date-desc">Date (Newest first)</option>
+          <option value="date-asc">Date (Oldest first)</option>
+          <option value="alpha-asc">Alphabetical (A–Z)</option>
+          <option value="alpha-desc">Alphabetical (Z–A)</option>
+        </select>
+      </section>
+
+      <section>
+        <p id="status" role="status">Loading tracks…</p>
+        <ul id="trackList" class="track-list" aria-live="polite"></ul>
+      </section>
+    </main>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>

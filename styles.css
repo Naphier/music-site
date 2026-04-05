@@ -1,0 +1,163 @@
+:root {
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f5f6f8;
+  color: #171717;
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+.artist-header {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 4px 10px rgba(18, 18, 18, 0.06);
+  margin-bottom: 1rem;
+}
+
+.artist-header h1 {
+  margin: 0 0 0.5rem;
+}
+
+.artist-header p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0 1rem;
+}
+
+#sortBy {
+  border: 1px solid #ccd1d9;
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+  background: #fff;
+}
+
+#status {
+  margin: 0.4rem 0 0.8rem;
+  color: #505865;
+}
+
+.track-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.track-item {
+  display: grid;
+  gap: 0.8rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(18, 18, 18, 0.06);
+  padding: 0.85rem;
+}
+
+.track-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.track-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.track-title {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-date {
+  color: #505865;
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+
+.thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  border: 1px solid #dde2ea;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #f0f2f5;
+}
+
+.player-controls {
+  display: grid;
+  grid-template-columns: auto minmax(140px, 1fr) auto auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+button,
+input[type='range'] {
+  cursor: pointer;
+}
+
+.play-btn {
+  border: 1px solid #ccd1d9;
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.3rem 0.6rem;
+}
+
+.time {
+  font-variant-numeric: tabular-nums;
+  min-width: 84px;
+  text-align: right;
+  color: #505865;
+}
+
+@media (max-width: 700px) {
+  .player-controls {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      'play time'
+      'scrub scrub'
+      'vol vol';
+  }
+
+  .play-btn {
+    grid-area: play;
+    width: fit-content;
+  }
+
+  .scrub {
+    grid-area: scrub;
+  }
+
+  .volume {
+    grid-area: vol;
+  }
+
+  .time {
+    grid-area: time;
+  }
+}
