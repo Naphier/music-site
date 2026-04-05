@@ -58,7 +58,7 @@ prefix_for_js = f"{tracks_prefix}/" if tracks_prefix else ""
 index = index_file.read_text(encoding="utf-8")
 header = header_file.read_text(encoding="utf-8").strip()
 index = re.sub(
-    r'(<header class="artist-header">)([\\s\\S]*?)(</header>)',
+    r'(<header class="artist-header">)([\s\S]*?)(</header>)',
     lambda m: f'{m.group(1)}\\n{header}\\n      {m.group(3)}',
     index,
     count=1,
@@ -66,10 +66,10 @@ index = re.sub(
 index_file.write_text(index, encoding="utf-8")
 
 app = app_file.read_text(encoding="utf-8")
-app = re.sub(r"bucketName:\\s*'[^']*'", f"bucketName: '{bucket}'", app, count=1)
-app = re.sub(r"region:\\s*'[^']*'", f"region: '{region}'", app, count=1)
-app = re.sub(r"prefix:\\s*'[^']*'", f"prefix: '{prefix_for_js}'", app, count=1)
-app = re.sub(r"enableMockMode:\\s*(true|false)", f"enableMockMode: {mock_mode}", app, count=1)
+app = re.sub(r"bucketName:\s*'[^']*'", f"bucketName: '{bucket}'", app, count=1)
+app = re.sub(r"region:\s*'[^']*'", f"region: '{region}'", app, count=1)
+app = re.sub(r"prefix:\s*'[^']*'", f"prefix: '{prefix_for_js}'", app, count=1)
+app = re.sub(r"enableMockMode:\s*(true|false)", f"enableMockMode: {mock_mode}", app, count=1)
 app_file.write_text(app, encoding="utf-8")
 PY
 

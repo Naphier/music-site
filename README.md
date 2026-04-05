@@ -20,13 +20,43 @@ Simple static website for listing and playing music files stored in a public AWS
 
 Create an IAM user specifically for CI/CD deployments and generate an **Access Key ID** and **Secret Access Key**.
 
-Minimum IAM permissions for deployment:
-- `s3:ListBucket` on the bucket ARN.
-- `s3:GetObject`, `s3:PutObject`, `s3:DeleteObject` on bucket objects.
+Use a least-privilege policy. The example below allows deployment updates only at the bucket root and the `dev/` stage path, and explicitly denies writes/deletes in `tracks/`. Replace `YOUR_BUCKET_NAME` before using.
 
-Recommended scope:
-- Limit object permissions to `dev/*` where possible.
-- Keep `tracks/*` manually managed.
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowListBucket",
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket"],
+      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME"
+    },
+    {
+      "Sid": "AllowWriteDeleteRootObjects",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/*"
+    },
+    {
+      "Sid": "AllowWriteDeleteDevObjects",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/dev/*"
+    },
+    {
+      "Sid": "DenyWriteDeleteTracksObjects",
+      "Effect": "Deny",
+      "Action": ["s3:PutObject", "s3:DeleteObject"],
+      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/tracks/*"
+    }
+  ]
+}
+```
+
+Notes:
+- The explicit deny on `tracks/*` overrides any broader allow and keeps media manually managed.
+- If you also want to prevent reads from `tracks/*`, add `s3:GetObject` to the deny statement.
 
 ### 3) GitHub repository secrets
 
@@ -75,6 +105,14 @@ This repository includes:
 
 - Push to `main`, or run the workflow manually from **Actions → Deploy static site to S3 → Run workflow**.
 - The workflow reads bucket/config values from GitHub Secrets and runs `./scripts/deploy.sh`.
+
+### Run deployment test (mocked AWS CLI)
+
+Use the included test harness to validate deployment injection and sync argument construction without hitting AWS:
+
+```bash
+./scripts/test-deploy.sh
+```
 
 ## Setup / Local Dev
 
