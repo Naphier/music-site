@@ -24,9 +24,12 @@ fi
 
 SOURCE_DIR="$3"
 DEST="$4"
+shift 4
 
 [[ -f "$SOURCE_DIR/index.html" ]] || { echo "Missing index.html in staged output" >&2; exit 1; }
 [[ -f "$SOURCE_DIR/app.js" ]] || { echo "Missing app.js in staged output" >&2; exit 1; }
+[[ -f "$SOURCE_DIR/styles.css" ]] || { echo "Missing styles.css in staged output" >&2; exit 1; }
+[[ ! -e "$SOURCE_DIR/scripts" ]] || { echo "scripts/ should not be staged" >&2; exit 1; }
 
 grep -q '<h1>Injected Header</h1>' "$SOURCE_DIR/index.html" || {
   echo "Header content was not injected" >&2
@@ -55,6 +58,12 @@ if [[ "$DEST" != "s3://test-bucket/dev/" ]]; then
   exit 1
 fi
 
+args="$*"
+[[ "$args" == *"--region us-west-2"* ]] || { echo "Missing expected --region" >&2; exit 1; }
+[[ "$args" == *"--delete"* ]] || { echo "Missing expected --delete" >&2; exit 1; }
+[[ "$args" == *"--exclude test-headerContent.html"* ]] || { echo "Missing expected header exclude" >&2; exit 1; }
+[[ "$args" == *"--exclude tracks/*"* ]] || { echo "Missing expected tracks exclude" >&2; exit 1; }
+
 echo "mock aws sync verified"
 AWS
 chmod +x "$TMP_BIN/aws"
@@ -73,8 +82,6 @@ DEPLOY_PREFIX="dev" \
 ENABLE_MOCK_MODE="false" \
 HEADER_CONTENT_FILE="$TEST_HEADER_FILE" \
 ./scripts/deploy.sh | tee "$LOG_FILE"
-
-rm -f "$TEST_HEADER_FILE"
 
 grep -q 'Deployment complete.' "$LOG_FILE" || {
   echo "Deployment script did not finish successfully" >&2

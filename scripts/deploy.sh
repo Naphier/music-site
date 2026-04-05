@@ -27,13 +27,26 @@ if ! command -v aws >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! command -v rsync >/dev/null 2>&1; then
+  echo "rsync is required but not found in PATH." >&2
+  exit 1
+fi
+
 TMP_DIR="$(mktemp -d)"
 cleanup() {
   rm -rf "$TMP_DIR"
 }
 trap cleanup EXIT
 
-cp index.html app.js styles.css "$HEADER_CONTENT_FILE" "$TMP_DIR/"
+# Stage deployable site files while excluding repo/CI metadata and tooling files.
+rsync -a ./ "$TMP_DIR/" \
+  --exclude ".git/" \
+  --exclude ".github/" \
+  --exclude "scripts/" \
+  --exclude "README.md" \
+  --exclude ".env" \
+  --exclude ".env.*" \
+  --exclude ".gitignore"
 
 export TMP_DIR S3_BUCKET_NAME S3_REGION TRACKS_PREFIX ENABLE_MOCK_MODE HEADER_CONTENT_FILE
 python3 <<'PY'
@@ -46,6 +59,13 @@ index_file = work / "index.html"
 app_file = work / "app.js"
 header_file = work / os.environ["HEADER_CONTENT_FILE"]
 
+if not index_file.exists():
+    raise SystemExit("index.html was not found in staged files")
+if not app_file.exists():
+    raise SystemExit("app.js was not found in staged files")
+if not header_file.exists():
+    raise SystemExit(f"{header_file.name} was not found in staged files")
+
 bucket = os.environ["S3_BUCKET_NAME"]
 region = os.environ["S3_REGION"]
 tracks_prefix = os.environ["TRACKS_PREFIX"].strip("/")
@@ -57,19 +77,26 @@ prefix_for_js = f"{tracks_prefix}/" if tracks_prefix else ""
 
 index = index_file.read_text(encoding="utf-8")
 header = header_file.read_text(encoding="utf-8").strip()
-index = re.sub(
+index, replaced = re.subn(
     r'(<header class="artist-header">)([\s\S]*?)(</header>)',
-    lambda m: f'{m.group(1)}\\n{header}\\n      {m.group(3)}',
+    lambda m: f'{m.group(1)}\n{header}\n      {m.group(3)}',
     index,
     count=1,
 )
+if replaced != 1:
+    raise SystemExit('Could not find exactly one <header class="artist-header"> block in index.html')
 index_file.write_text(index, encoding="utf-8")
 
 app = app_file.read_text(encoding="utf-8")
-app = re.sub(r"bucketName:\s*'[^']*'", f"bucketName: '{bucket}'", app, count=1)
-app = re.sub(r"region:\s*'[^']*'", f"region: '{region}'", app, count=1)
-app = re.sub(r"prefix:\s*'[^']*'", f"prefix: '{prefix_for_js}'", app, count=1)
-app = re.sub(r"enableMockMode:\s*(true|false)", f"enableMockMode: {mock_mode}", app, count=1)
+for pattern, replacement in [
+    (r"bucketName:\s*'[^']*'", f"bucketName: '{bucket}'"),
+    (r"region:\s*'[^']*'", f"region: '{region}'"),
+    (r"prefix:\s*'[^']*'", f"prefix: '{prefix_for_js}'"),
+    (r"enableMockMode:\s*(true|false)", f"enableMockMode: {mock_mode}"),
+]:
+    app, sub_count = re.subn(pattern, replacement, app, count=1)
+    if sub_count != 1:
+        raise SystemExit(f"Failed to apply substitution for pattern: {pattern}")
 app_file.write_text(app, encoding="utf-8")
 PY
 
