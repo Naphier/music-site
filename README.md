@@ -34,17 +34,30 @@ Sample bucket policies:
 - **A) Direct S3 website hosting (public reads)**
   - Use this when serving directly from the S3 website endpoint.
   - Replace `YOUR_BUCKET_NAME` before applying.
+  - **Important:** this app fetches `ListObjectsV2` from the REST endpoint (`https://<bucket>.s3.<region>.amazonaws.com/?list-type=2&prefix=tracks/`), so `s3:ListBucket` is required in addition to `s3:GetObject`.
 
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "PublicReadForWebsite",
+      "Sid": "PublicReadForTracksObjects",
       "Effect": "Allow",
       "Principal": "*",
       "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/*"
+      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/tracks/*"
+    },
+    {
+      "Sid": "PublicListTracksPrefixOnly",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME",
+      "Condition": {
+        "StringLike": {
+          "s3:prefix": ["tracks/*"]
+        }
+      }
     }
   ]
 }
@@ -53,6 +66,7 @@ Sample bucket policies:
 - **B) CloudFront + Origin Access Control (recommended for production)**
   - Keep S3 Block Public Access enabled and allow only CloudFront distribution reads.
   - Replace `YOUR_BUCKET_NAME`, `ACCOUNT_ID`, and `DISTRIBUTION_ID`.
+  - Add a `ListBucket` statement for the `tracks/` prefix so CloudFront can return object listings if your app requests `?list-type=2`.
 
 ```json
 {
@@ -71,6 +85,23 @@ Sample bucket policies:
           "AWS:SourceArn": "arn:aws:cloudfront::ACCOUNT_ID:distribution/DISTRIBUTION_ID"
         }
       }
+    },
+    {
+      "Sid": "AllowCloudFrontServicePrincipalListTracksPrefix",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "cloudfront.amazonaws.com"
+      },
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME",
+      "Condition": {
+        "StringEquals": {
+          "AWS:SourceArn": "arn:aws:cloudfront::ACCOUNT_ID:distribution/DISTRIBUTION_ID"
+        },
+        "StringLike": {
+          "s3:prefix": ["tracks/*"]
+        }
+      }
     }
   ]
 }
@@ -79,6 +110,25 @@ Sample bucket policies:
 Notes:
 - If you are serving through CloudFront with OAC/OAI, do **not** use public-read bucket policies.
 - After changing policy/CORS, allow a minute for propagation and then test media URLs from your deployed site.
+- If direct object URLs work but `?list-type=2&prefix=tracks/` returns `403`, the missing permission is almost always `s3:ListBucket` on the bucket ARN (`arn:aws:s3:::YOUR_BUCKET_NAME`), not on object ARNs.
+- If using account-level **Block Public Access**, public `ListBucket`/`GetObject` policies are ignored until block settings are adjusted.
+
+### 1b) Verify S3 listing behavior (quick troubleshooting)
+
+Use these checks after applying CORS and bucket policy:
+
+```bash
+# Should return 200 and XML with <ListBucketResult>
+curl -i "https://YOUR_BUCKET_NAME.s3.YOUR_REGION.amazonaws.com/?list-type=2&prefix=tracks/"
+
+# Should return 200 for a concrete object
+curl -I "https://YOUR_BUCKET_NAME.s3.YOUR_REGION.amazonaws.com/tracks/YOUR_FILE.mp3"
+```
+
+Expected outcomes:
+- `200` on object URL but `403` on `list-type=2` means listing permissions are missing (`s3:ListBucket`).
+- `403` on both usually means bucket policy/public access block mismatch.
+- Browser-only failure with successful `curl` usually indicates CORS mismatch for your site origin.
 
 ### 2) GitHub AWS credentials (IAM access keys)
 
