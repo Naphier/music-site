@@ -29,9 +29,56 @@ Sample CORS configuration:
 ]
 ```
 
-Bucket policy notes:
-- If you are serving files publicly from S3 website hosting, you typically need a bucket policy that allows `s3:GetObject` for public reads on site files.
-- If you are serving through CloudFront with OAC/OAI, keep bucket reads private and grant read access to CloudFront instead (preferred for production).
+Sample bucket policies:
+
+- **A) Direct S3 website hosting (public reads)**
+  - Use this when serving directly from the S3 website endpoint.
+  - Replace `YOUR_BUCKET_NAME` before applying.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadForWebsite",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/*"
+    }
+  ]
+}
+```
+
+- **B) CloudFront + Origin Access Control (recommended for production)**
+  - Keep S3 Block Public Access enabled and allow only CloudFront distribution reads.
+  - Replace `YOUR_BUCKET_NAME`, `ACCOUNT_ID`, and `DISTRIBUTION_ID`.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowCloudFrontServicePrincipalReadOnly",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "cloudfront.amazonaws.com"
+      },
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/*",
+      "Condition": {
+        "StringEquals": {
+          "AWS:SourceArn": "arn:aws:cloudfront::ACCOUNT_ID:distribution/DISTRIBUTION_ID"
+        }
+      }
+    }
+  ]
+}
+```
+
+Notes:
+- If you are serving through CloudFront with OAC/OAI, do **not** use public-read bucket policies.
+- After changing policy/CORS, allow a minute for propagation and then test media URLs from your deployed site.
 
 ### 2) GitHub AWS credentials (IAM access keys)
 
