@@ -132,7 +132,6 @@ Create these secrets:
 - `S3_BUCKET_NAME`
 - `S3_REGION`
 - `TRACKS_PREFIX` (example: `tracks`)
-- `DEPLOY_PREFIX` (recommended: `dev`)
 
 ## Deployment
 
@@ -142,8 +141,9 @@ This repository includes:
 
 ### Dev stage vs production stage
 
-- **Dev stage**: set `DEPLOY_PREFIX=dev` (default) to deploy the site into `s3://<bucket>/dev/`.
-- **Production stage**: set `DEPLOY_PREFIX` to empty to deploy to the bucket root (`s3://<bucket>/`).
+- The deploy script accepts `--stage dev|prd`:
+  - `--stage dev` deploys into `s3://<bucket>/dev/`.
+  - `--stage prd` deploys to the bucket root `s3://<bucket>/`.
 - In all cases, `tracks/*` is excluded from deployment sync and remains manually managed.
 
 ### What deployment does
@@ -156,7 +156,7 @@ This repository includes:
    - `region`
    - `prefix` (derived from `TRACKS_PREFIX`)
    - `enableMockMode`
-5. Uploads site assets to `s3://<bucket>/<DEPLOY_PREFIX>/` using AWS CLI sync and overwrite semantics (or to bucket root when `DEPLOY_PREFIX` is empty).
+5. Uploads site assets to `s3://<bucket>/dev/` for `dev` stage, or to `s3://<bucket>/` for `prd` stage, using AWS CLI sync and overwrite semantics.
 6. Excludes `tracks/*` from deployment operations so media remains manually managed.
 
 ### Run deployment locally
@@ -164,16 +164,19 @@ This repository includes:
 1. Install AWS CLI and authenticate your local environment (for example `aws configure`, SSO, or role-based credentials).
 2. Copy `.env_example` to `.env` and fill values.
 3. Update `headerContent.html` as desired.
-4. Run:
+4. Run one of:
 
 ```bash
-./scripts/deploy.sh
+./scripts/deploy.sh --stage dev
+./scripts/deploy.sh --stage prd
 ```
 
 ### Deploy via GitHub Actions
 
 - Push to `main`, or run the workflow manually from **Actions → Deploy static site to S3 → Run workflow**.
-- The workflow reads bucket/config values from GitHub Secrets and runs `./scripts/deploy.sh`.
+- Manual runs include a **stage** selector (`dev` or `prd`).
+- Pushes/merges to `main` always deploy with `prd` stage (bucket root).
+- The workflow reads bucket/config values from GitHub Secrets and runs `./scripts/deploy.sh --stage <selected-stage>`.
 - `ENABLE_MOCK_MODE` is pinned to `false` in this workflow for S3 deployments.
 
 ### Run deployment test (mocked AWS CLI)
