@@ -44,6 +44,7 @@ const sortSelect = document.getElementById('sortBy');
 const trackListEl = document.getElementById('trackList');
 
 let tracks = [];
+let audioPlayers = [];
 
 function formatTime(totalSeconds) {
   if (!Number.isFinite(totalSeconds)) return '0:00';
@@ -63,6 +64,27 @@ function formatDate(isoString) {
 function fileBaseName(key) {
   const fileName = key.split('/').pop() ?? key;
   return fileName.replace(/\.[^.]+$/, '');
+}
+
+function parseTitleAndDateFromBaseName(baseName, fallbackDate) {
+  const match = baseName.match(/^(.*?)(?:[\s._-]*)(\d{4}-\d{2}-\d{2}|\d{8})$/);
+  if (!match) {
+    return { title: baseName, date: fallbackDate };
+  }
+
+  const rawTitle = match[1] ?? baseName;
+  const strippedTitle = rawTitle.replace(/[\W_]+$/g, '').trim();
+  const normalizedTitle = strippedTitle || baseName;
+  const rawDate = match[2];
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+    return { title: normalizedTitle, date: `${rawDate}T00:00:00Z` };
+  }
+
+  const yyyy = rawDate.slice(0, 4);
+  const mm = rawDate.slice(4, 6);
+  const dd = rawDate.slice(6, 8);
+  return { title: normalizedTitle, date: `${yyyy}-${mm}-${dd}T00:00:00Z` };
 }
 
 function objectUrl(key) {
@@ -103,10 +125,13 @@ function parseTracks(xmlText) {
         return null;
       }
 
+      const baseName = fileBaseName(key);
+      const parsed = parseTitleAndDateFromBaseName(baseName, lastModified);
+
       return {
         key,
-        title: fileBaseName(key),
-        date: lastModified,
+        title: parsed.title,
+        date: parsed.date,
         audioUrl: objectUrl(key),
         thumbCandidates: thumbnailCandidates(key).map(objectUrl),
       };
@@ -166,7 +191,7 @@ function createTrackItem(track) {
   thumb.alt = `${track.title} thumbnail`;
   attachThumbFallback(thumb, track.thumbCandidates);
 
-  titleWrap.append(title, thumb);
+  titleWrap.append(thumb, title);
 
   const date = document.createElement('time');
   date.className = 'track-date';
@@ -181,7 +206,8 @@ function createTrackItem(track) {
   const playBtn = document.createElement('button');
   playBtn.className = 'play-btn';
   playBtn.type = 'button';
-  playBtn.textContent = 'Play';
+  playBtn.setAttribute('aria-label', `Play ${track.title}`);
+  playBtn.innerHTML = '<span aria-hidden="true">▶️</span>';
 
   const scrub = document.createElement('input');
   scrub.className = 'scrub';
@@ -201,6 +227,17 @@ function createTrackItem(track) {
   volume.value = '1';
   volume.setAttribute('aria-label', `Volume for ${track.title}`);
 
+  const volumeIcon = document.createElement('span');
+  volumeIcon.className = 'volume-icon';
+  volumeIcon.setAttribute('aria-hidden', 'true');
+  volumeIcon.textContent = '🔊';
+
+  const loopBtn = document.createElement('button');
+  loopBtn.className = 'loop-btn';
+  loopBtn.type = 'button';
+  loopBtn.setAttribute('aria-label', `Enable loop for ${track.title}`);
+  loopBtn.innerHTML = '<span aria-hidden="true">🔁</span>';
+
   const timeLabel = document.createElement('span');
   timeLabel.className = 'time';
   timeLabel.textContent = '0:00 / 0:00';
@@ -208,15 +245,31 @@ function createTrackItem(track) {
   const audio = document.createElement('audio');
   audio.src = track.audioUrl;
   audio.preload = 'metadata';
+  audioPlayers.push(audio);
 
   playBtn.addEventListener('click', () => {
     if (audio.paused) {
+      for (const player of audioPlayers) {
+        if (player !== audio) {
+          player.pause();
+        }
+      }
       audio.play().catch(() => {
         statusEl.textContent = `Playback failed for ${track.title}. Ensure the object is public and CORS is enabled on the bucket.`;
+        statusEl.hidden = false;
       });
     } else {
       audio.pause();
     }
+  });
+
+  loopBtn.addEventListener('click', () => {
+    audio.loop = !audio.loop;
+    loopBtn.classList.toggle('is-active', audio.loop);
+    loopBtn.setAttribute(
+      'aria-label',
+      `${audio.loop ? 'Disable' : 'Enable'} loop for ${track.title}`,
+    );
   });
 
   volume.addEventListener('input', () => {
@@ -241,25 +294,29 @@ function createTrackItem(track) {
   });
 
   audio.addEventListener('play', () => {
-    playBtn.textContent = 'Pause';
+    playBtn.setAttribute('aria-label', `Pause ${track.title}`);
+    playBtn.innerHTML = '<span aria-hidden="true">⏸️</span>';
   });
 
   audio.addEventListener('pause', () => {
-    playBtn.textContent = 'Play';
+    playBtn.setAttribute('aria-label', `Play ${track.title}`);
+    playBtn.innerHTML = '<span aria-hidden="true">▶️</span>';
   });
 
   audio.addEventListener('ended', () => {
     scrub.value = '0';
-    playBtn.textContent = 'Play';
+    playBtn.setAttribute('aria-label', `Play ${track.title}`);
+    playBtn.innerHTML = '<span aria-hidden="true">▶️</span>';
   });
 
-  controls.append(playBtn, scrub, volume, timeLabel);
+  controls.append(playBtn, scrub, volume, volumeIcon, loopBtn, timeLabel);
   li.append(meta, controls, audio);
 
   return li;
 }
 
 function renderTrackList() {
+  audioPlayers = [];
   trackListEl.replaceChildren();
 
   const sortedTracks = sortTracks(sortSelect.value);
@@ -271,7 +328,7 @@ function renderTrackList() {
 
 function loadMockTracks() {
   tracks = [...MOCK_TRACKS];
-  statusEl.textContent = `Mock mode: loaded ${tracks.length} sample track${tracks.length === 1 ? '' : 's'}.`;
+  statusEl.hidden = true;
   renderTrackList();
 }
 
@@ -284,6 +341,7 @@ async function loadTracks() {
 
     statusEl.textContent =
       'Set CONFIG.bucketName in app.js to your public bucket name first.';
+    statusEl.hidden = false;
     return;
   }
 
@@ -304,13 +362,15 @@ async function loadTracks() {
     if (tracks.length === 0) {
       statusEl.textContent =
         'No supported audio files found. Add audio files (.mp3, .wav, .m4a, .ogg, .flac) to your bucket.';
+      statusEl.hidden = false;
       return;
     }
 
-    statusEl.textContent = `Loaded ${tracks.length} track${tracks.length === 1 ? '' : 's'}.`;
+    statusEl.hidden = true;
     renderTrackList();
   } catch (error) {
     statusEl.textContent = `Error loading tracks: ${error.message} Check bucket public access and CORS.`;
+    statusEl.hidden = false;
   }
 }
 
