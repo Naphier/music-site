@@ -22,6 +22,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Enable mock mode for Pages deployment
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          app = Path('app.js')
+          text = app.read_text(encoding='utf-8')
+          updated = text.replace('__DEPLOY_ENABLE_MOCK_MODE__', 'true')
+          app.write_text(updated, encoding='utf-8')
+          PY
+
       - name: Configure Pages
         uses: actions/configure-pages@v6
 
