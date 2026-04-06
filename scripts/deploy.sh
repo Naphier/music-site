@@ -14,8 +14,62 @@ fi
 : "${TRACKS_PREFIX:?TRACKS_PREFIX is required (example: tracks)}"
 : "${ENABLE_MOCK_MODE:?ENABLE_MOCK_MODE is required (true/false)}"
 
-DEPLOY_PREFIX="${DEPLOY_PREFIX:-dev}"
+STAGE="${STAGE:-}"
+DEPLOY_PREFIX="${DEPLOY_PREFIX:-}"
 HEADER_CONTENT_FILE="${HEADER_CONTENT_FILE:-headerContent.html}"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/deploy.sh [--stage dev|prd]
+
+Stages:
+  --stage dev  Deploy to s3://<bucket>/dev/
+  --stage prd  Deploy to s3://<bucket>/
+
+Defaults:
+  If --stage is omitted, STAGE env var is used.
+  If STAGE is not set, DEPLOY_PREFIX env var is used for backwards compatibility:
+    DEPLOY_PREFIX=dev -> stage dev
+    DEPLOY_PREFIX=''  -> stage prd
+  If none are provided, defaults to stage dev.
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --stage)
+      STAGE="${2:-}"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [[ -z "$STAGE" ]]; then
+  if [[ -n "${DEPLOY_PREFIX}" ]]; then
+    if [[ "$DEPLOY_PREFIX" == "dev" ]]; then
+      STAGE="dev"
+    else
+      echo "Unsupported DEPLOY_PREFIX value: '$DEPLOY_PREFIX'. Use STAGE=dev|prd or --stage dev|prd." >&2
+      exit 1
+    fi
+  else
+    STAGE="dev"
+  fi
+fi
+
+if [[ "$STAGE" != "dev" && "$STAGE" != "prd" ]]; then
+  echo "Invalid stage '$STAGE'. Allowed values are 'dev' or 'prd'." >&2
+  exit 1
+fi
 
 if [[ ! -f "$HEADER_CONTENT_FILE" ]]; then
   echo "Header content file not found: $HEADER_CONTENT_FILE" >&2
@@ -103,13 +157,13 @@ for token, value in replacements.items():
 app_file.write_text(app, encoding="utf-8")
 PY
 
-if [[ -n "$DEPLOY_PREFIX" ]]; then
-  S3_DEST="s3://${S3_BUCKET_NAME}/${DEPLOY_PREFIX}/"
-else
+if [[ "$STAGE" == "prd" ]]; then
   S3_DEST="s3://${S3_BUCKET_NAME}/"
+else
+  S3_DEST="s3://${S3_BUCKET_NAME}/dev/"
 fi
 
-echo "Deploying static site to ${S3_DEST}"
+echo "Deploying static site (stage=${STAGE}) to ${S3_DEST}"
 aws s3 sync "$TMP_DIR" "$S3_DEST" \
   --region "$S3_REGION" \
   --delete \

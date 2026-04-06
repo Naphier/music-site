@@ -2,6 +2,15 @@ name: Deploy static site to S3
 
 on:
   workflow_dispatch:
+    inputs:
+      stage:
+        description: "Deployment stage"
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - prd
   push:
     branches:
       - main
@@ -28,7 +37,7 @@ jobs:
           S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
           S3_REGION: ${{ secrets.S3_REGION }}
           TRACKS_PREFIX: ${{ secrets.TRACKS_PREFIX }}
-          DEPLOY_PREFIX: ${{ secrets.DEPLOY_PREFIX }}
           ENABLE_MOCK_MODE: "false"
           HEADER_CONTENT_FILE: headerContent.html
-        run: ./scripts/deploy.sh
+          STAGE: ${{ github.event_name == 'push' && 'prd' || inputs.stage }}
+        run: ./scripts/deploy.sh --stage "$STAGE"

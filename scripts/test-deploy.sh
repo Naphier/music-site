@@ -54,7 +54,7 @@ grep -q "const DEPLOY_ENABLE_MOCK_MODE = 'false';" "$SOURCE_DIR/app.js" || {
   exit 1
 }
 
-if [[ "$DEST" != "s3://test-bucket/dev/" ]]; then
+if [[ "$DEST" != "${EXPECTED_DEST:?EXPECTED_DEST must be set}" ]]; then
   echo "Unexpected destination: $DEST" >&2
   exit 1
 fi
@@ -79,13 +79,27 @@ PATH="$TMP_BIN:$PATH" \
 S3_BUCKET_NAME="test-bucket" \
 S3_REGION="us-west-2" \
 TRACKS_PREFIX="tracks" \
-DEPLOY_PREFIX="dev" \
 ENABLE_MOCK_MODE="false" \
 HEADER_CONTENT_FILE="$TEST_HEADER_FILE" \
-./scripts/deploy.sh | tee "$LOG_FILE"
+EXPECTED_DEST="s3://test-bucket/dev/" \
+./scripts/deploy.sh --stage dev | tee "$LOG_FILE"
 
 grep -q 'Deployment complete.' "$LOG_FILE" || {
-  echo "Deployment script did not finish successfully" >&2
+  echo "Dev deployment script run did not finish successfully" >&2
+  exit 1
+}
+
+PATH="$TMP_BIN:$PATH" \
+S3_BUCKET_NAME="test-bucket" \
+S3_REGION="us-west-2" \
+TRACKS_PREFIX="tracks" \
+ENABLE_MOCK_MODE="false" \
+HEADER_CONTENT_FILE="$TEST_HEADER_FILE" \
+EXPECTED_DEST="s3://test-bucket/" \
+./scripts/deploy.sh --stage prd | tee "$LOG_FILE"
+
+grep -q 'Deployment complete.' "$LOG_FILE" || {
+  echo "Prd deployment script run did not finish successfully" >&2
   exit 1
 }
 
