@@ -46,6 +46,7 @@ rsync -a ./ "$TMP_DIR/" \
   --exclude "README.md" \
   --exclude ".env" \
   --exclude ".env.*" \
+  --exclude ".env_example" \
   --exclude ".gitignore"
 
 export TMP_DIR S3_BUCKET_NAME S3_REGION TRACKS_PREFIX ENABLE_MOCK_MODE HEADER_CONTENT_FILE
@@ -89,10 +90,10 @@ index_file.write_text(index, encoding="utf-8")
 
 app = app_file.read_text(encoding="utf-8")
 replacements = {
-    "__S3_BUCKET_NAME__": bucket,
-    "__S3_REGION__": region,
-    "__TRACKS_PREFIX__": prefix_for_js,
-    "__ENABLE_MOCK_MODE__": mock_mode,
+    "__DEPLOY_S3_BUCKET_NAME__": bucket,
+    "__DEPLOY_S3_REGION__": region,
+    "__DEPLOY_TRACKS_PREFIX__": prefix_for_js,
+    "__DEPLOY_ENABLE_MOCK_MODE__": mock_mode,
 }
 for token, value in replacements.items():
     count = app.count(token)
@@ -102,8 +103,14 @@ for token, value in replacements.items():
 app_file.write_text(app, encoding="utf-8")
 PY
 
-echo "Deploying static site to s3://${S3_BUCKET_NAME}/${DEPLOY_PREFIX}/"
-aws s3 sync "$TMP_DIR" "s3://${S3_BUCKET_NAME}/${DEPLOY_PREFIX}/" \
+if [[ -n "$DEPLOY_PREFIX" ]]; then
+  S3_DEST="s3://${S3_BUCKET_NAME}/${DEPLOY_PREFIX}/"
+else
+  S3_DEST="s3://${S3_BUCKET_NAME}/"
+fi
+
+echo "Deploying static site to ${S3_DEST}"
+aws s3 sync "$TMP_DIR" "$S3_DEST" \
   --region "$S3_REGION" \
   --delete \
   --exclude "$HEADER_CONTENT_FILE" \

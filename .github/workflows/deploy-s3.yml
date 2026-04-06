@@ -29,6 +29,6 @@ jobs:
           S3_REGION: ${{ secrets.S3_REGION }}
           TRACKS_PREFIX: ${{ secrets.TRACKS_PREFIX }}
           DEPLOY_PREFIX: ${{ secrets.DEPLOY_PREFIX }}
-          ENABLE_MOCK_MODE: ${{ secrets.ENABLE_MOCK_MODE }}
+          ENABLE_MOCK_MODE: "false"
           HEADER_CONTENT_FILE: headerContent.html
         run: ./scripts/deploy.sh

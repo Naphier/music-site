@@ -30,25 +30,26 @@ shift 4
 [[ -f "$SOURCE_DIR/app.js" ]] || { echo "Missing app.js in staged output" >&2; exit 1; }
 [[ -f "$SOURCE_DIR/styles.css" ]] || { echo "Missing styles.css in staged output" >&2; exit 1; }
 [[ ! -e "$SOURCE_DIR/scripts" ]] || { echo "scripts/ should not be staged" >&2; exit 1; }
+[[ ! -e "$SOURCE_DIR/.env_example" ]] || { echo ".env_example should not be staged" >&2; exit 1; }
 
 grep -q '<h1>Injected Header</h1>' "$SOURCE_DIR/index.html" || {
   echo "Header content was not injected" >&2
   exit 1
 }
 
-grep -q "const TOKEN_S3_BUCKET_NAME = 'test-bucket';" "$SOURCE_DIR/app.js" || {
+grep -q "const DEPLOY_S3_BUCKET_NAME = 'test-bucket';" "$SOURCE_DIR/app.js" || {
   echo "bucketName token was not written to app.js" >&2
   exit 1
 }
-grep -q "const TOKEN_S3_REGION = 'us-west-2';" "$SOURCE_DIR/app.js" || {
+grep -q "const DEPLOY_S3_REGION = 'us-west-2';" "$SOURCE_DIR/app.js" || {
   echo "region token was not written to app.js" >&2
   exit 1
 }
-grep -q "const TOKEN_TRACKS_PREFIX = 'tracks/';" "$SOURCE_DIR/app.js" || {
+grep -q "const DEPLOY_TRACKS_PREFIX = 'tracks/';" "$SOURCE_DIR/app.js" || {
   echo "tracks prefix token was not written to app.js" >&2
   exit 1
 }
-grep -q "const TOKEN_ENABLE_MOCK_MODE = 'false';" "$SOURCE_DIR/app.js" || {
+grep -q "const DEPLOY_ENABLE_MOCK_MODE = 'false';" "$SOURCE_DIR/app.js" || {
   echo "enableMockMode token was not written to app.js" >&2
   exit 1
 }

@@ -16,6 +16,70 @@ Simple static website for listing and playing music files stored in a public AWS
    - If using **CloudFront + S3**, keep bucket private to the public and route access through CloudFront/OAC as desired.
 5. Ensure CORS is configured so the browser can load audio objects from `tracks/`.
 
+Sample CORS configuration:
+
+```json
+[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET", "HEAD"],
+    "AllowedOrigins": ["*"],
+    "ExposeHeaders": ["ETag"]
+  }
+]
+```
+
+Sample bucket policies:
+
+- **A) Direct S3 website hosting (public reads)**
+  - Use this when serving directly from the S3 website endpoint.
+  - Replace `YOUR_BUCKET_NAME` before applying.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadForWebsite",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/*"
+    }
+  ]
+}
+```
+
+- **B) CloudFront + Origin Access Control (recommended for production)**
+  - Keep S3 Block Public Access enabled and allow only CloudFront distribution reads.
+  - Replace `YOUR_BUCKET_NAME`, `ACCOUNT_ID`, and `DISTRIBUTION_ID`.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowCloudFrontServicePrincipalReadOnly",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "cloudfront.amazonaws.com"
+      },
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/*",
+      "Condition": {
+        "StringEquals": {
+          "AWS:SourceArn": "arn:aws:cloudfront::ACCOUNT_ID:distribution/DISTRIBUTION_ID"
+        }
+      }
+    }
+  ]
+}
+```
+
+Notes:
+- If you are serving through CloudFront with OAC/OAI, do **not** use public-read bucket policies.
+- After changing policy/CORS, allow a minute for propagation and then test media URLs from your deployed site.
+
 ### 2) GitHub AWS credentials (IAM access keys)
 
 Create an IAM user specifically for CI/CD deployments and generate an **Access Key ID** and **Secret Access Key**.
@@ -69,13 +133,18 @@ Create these secrets:
 - `S3_REGION`
 - `TRACKS_PREFIX` (example: `tracks`)
 - `DEPLOY_PREFIX` (recommended: `dev`)
-- `ENABLE_MOCK_MODE` (`false` for S3 deployments, `true` for GitHub Pages test deployments)
 
 ## Deployment
 
 This repository includes:
 - Deployment script: `scripts/deploy.sh`
 - GitHub Actions workflow: `.github/workflows/deploy-s3.yml`
+
+### Dev stage vs production stage
+
+- **Dev stage**: set `DEPLOY_PREFIX=dev` (default) to deploy the site into `s3://<bucket>/dev/`.
+- **Production stage**: set `DEPLOY_PREFIX` to empty to deploy to the bucket root (`s3://<bucket>/`).
+- In all cases, `tracks/*` is excluded from deployment sync and remains manually managed.
 
 ### What deployment does
 
@@ -87,7 +156,7 @@ This repository includes:
    - `region`
    - `prefix` (derived from `TRACKS_PREFIX`)
    - `enableMockMode`
-5. Uploads site assets to `s3://<bucket>/<DEPLOY_PREFIX>/` using AWS CLI sync and overwrite semantics.
+5. Uploads site assets to `s3://<bucket>/<DEPLOY_PREFIX>/` using AWS CLI sync and overwrite semantics (or to bucket root when `DEPLOY_PREFIX` is empty).
 6. Excludes `tracks/*` from deployment operations so media remains manually managed.
 
 ### Run deployment locally
@@ -105,6 +174,7 @@ This repository includes:
 
 - Push to `main`, or run the workflow manually from **Actions → Deploy static site to S3 → Run workflow**.
 - The workflow reads bucket/config values from GitHub Secrets and runs `./scripts/deploy.sh`.
+- `ENABLE_MOCK_MODE` is pinned to `false` in this workflow for S3 deployments.
 
 ### Run deployment test (mocked AWS CLI)
 
@@ -141,5 +211,5 @@ Then open `http://localhost:8000`.
 
 ## Notes
 
-- For GitHub Pages-only test deployments, set `ENABLE_MOCK_MODE=true` so the app can run without S3.
+- GitHub Pages workflow (`.github/workflows/deploy-pages.yml`) forces `ENABLE_MOCK_MODE=true` during artifact build.
 - For S3-backed deployments, set `ENABLE_MOCK_MODE=false` and provide valid S3 config.
