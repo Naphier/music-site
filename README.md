@@ -16,6 +16,23 @@ Simple static website for listing and playing music files stored in a public AWS
    - If using **CloudFront + S3**, keep bucket private to the public and route access through CloudFront/OAC as desired.
 5. Ensure CORS is configured so the browser can load audio objects from `tracks/`.
 
+Sample CORS configuration:
+
+```json
+[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET", "HEAD"],
+    "AllowedOrigins": ["*"],
+    "ExposeHeaders": ["ETag"]
+  }
+]
+```
+
+Bucket policy notes:
+- If you are serving files publicly from S3 website hosting, you typically need a bucket policy that allows `s3:GetObject` for public reads on site files.
+- If you are serving through CloudFront with OAC/OAI, keep bucket reads private and grant read access to CloudFront instead (preferred for production).
+
 ### 2) GitHub AWS credentials (IAM access keys)
 
 Create an IAM user specifically for CI/CD deployments and generate an **Access Key ID** and **Secret Access Key**.
@@ -76,6 +93,12 @@ This repository includes:
 - Deployment script: `scripts/deploy.sh`
 - GitHub Actions workflow: `.github/workflows/deploy-s3.yml`
 
+### Dev stage vs production stage
+
+- **Dev stage**: set `DEPLOY_PREFIX=dev` (default) to deploy the site into `s3://<bucket>/dev/`.
+- **Production stage**: set `DEPLOY_PREFIX` to empty to deploy to the bucket root (`s3://<bucket>/`).
+- In all cases, `tracks/*` is excluded from deployment sync and remains manually managed.
+
 ### What deployment does
 
 1. Loads deployment variables from environment (and `.env` when running locally).
@@ -86,7 +109,7 @@ This repository includes:
    - `region`
    - `prefix` (derived from `TRACKS_PREFIX`)
    - `enableMockMode`
-5. Uploads site assets to `s3://<bucket>/<DEPLOY_PREFIX>/` using AWS CLI sync and overwrite semantics.
+5. Uploads site assets to `s3://<bucket>/<DEPLOY_PREFIX>/` using AWS CLI sync and overwrite semantics (or to bucket root when `DEPLOY_PREFIX` is empty).
 6. Excludes `tracks/*` from deployment operations so media remains manually managed.
 
 ### Run deployment locally

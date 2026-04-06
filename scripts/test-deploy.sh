@@ -30,6 +30,7 @@ shift 4
 [[ -f "$SOURCE_DIR/app.js" ]] || { echo "Missing app.js in staged output" >&2; exit 1; }
 [[ -f "$SOURCE_DIR/styles.css" ]] || { echo "Missing styles.css in staged output" >&2; exit 1; }
 [[ ! -e "$SOURCE_DIR/scripts" ]] || { echo "scripts/ should not be staged" >&2; exit 1; }
+[[ ! -e "$SOURCE_DIR/.env_example" ]] || { echo ".env_example should not be staged" >&2; exit 1; }
 
 grep -q '<h1>Injected Header</h1>' "$SOURCE_DIR/index.html" || {
   echo "Header content was not injected" >&2
