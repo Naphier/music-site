@@ -56,9 +56,15 @@ function formatTime(totalSeconds) {
 }
 
 function formatDate(isoString) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(isoString)) {
+    const [year, month, day] = isoString.split('-').map(Number);
+    const utcDate = new Date(Date.UTC(year, month - 1, day));
+    return utcDate.toLocaleDateString();
+  }
+
   const date = new Date(isoString);
   if (Number.isNaN(date.getTime())) return 'Unknown date';
-  return date.toLocaleString();
+  return date.toLocaleDateString();
 }
 
 function fileBaseName(key) {
@@ -78,13 +84,13 @@ function parseTitleAndDateFromBaseName(baseName, fallbackDate) {
   const rawDate = match[2];
 
   if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
-    return { title: normalizedTitle, date: `${rawDate}T00:00:00Z` };
+    return { title: normalizedTitle, date: rawDate };
   }
 
   const yyyy = rawDate.slice(0, 4);
   const mm = rawDate.slice(4, 6);
   const dd = rawDate.slice(6, 8);
-  return { title: normalizedTitle, date: `${yyyy}-${mm}-${dd}T00:00:00Z` };
+  return { title: normalizedTitle, date: `${yyyy}-${mm}-${dd}` };
 }
 
 function objectUrl(key) {
@@ -207,7 +213,7 @@ function createTrackItem(track) {
   playBtn.className = 'play-btn';
   playBtn.type = 'button';
   playBtn.setAttribute('aria-label', `Play ${track.title}`);
-  playBtn.innerHTML = '<span aria-hidden="true">▶️</span>';
+  playBtn.innerHTML = '<span aria-hidden="true">▶</span>';
 
   const scrub = document.createElement('input');
   scrub.className = 'scrub';
@@ -236,7 +242,7 @@ function createTrackItem(track) {
   loopBtn.className = 'loop-btn';
   loopBtn.type = 'button';
   loopBtn.setAttribute('aria-label', `Enable loop for ${track.title}`);
-  loopBtn.innerHTML = '<span aria-hidden="true">🔁</span>';
+  loopBtn.innerHTML = '<span aria-hidden="true">↻</span>';
 
   const timeLabel = document.createElement('span');
   timeLabel.className = 'time';
@@ -295,18 +301,18 @@ function createTrackItem(track) {
 
   audio.addEventListener('play', () => {
     playBtn.setAttribute('aria-label', `Pause ${track.title}`);
-    playBtn.innerHTML = '<span aria-hidden="true">⏸️</span>';
+    playBtn.innerHTML = '<span aria-hidden="true">❚❚</span>';
   });
 
   audio.addEventListener('pause', () => {
     playBtn.setAttribute('aria-label', `Play ${track.title}`);
-    playBtn.innerHTML = '<span aria-hidden="true">▶️</span>';
+    playBtn.innerHTML = '<span aria-hidden="true">▶</span>';
   });
 
   audio.addEventListener('ended', () => {
     scrub.value = '0';
     playBtn.setAttribute('aria-label', `Play ${track.title}`);
-    playBtn.innerHTML = '<span aria-hidden="true">▶️</span>';
+    playBtn.innerHTML = '<span aria-hidden="true">▶</span>';
   });
 
   controls.append(playBtn, scrub, volume, volumeIcon, loopBtn, timeLabel);
