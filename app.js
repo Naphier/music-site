@@ -59,12 +59,12 @@ function formatDate(isoString) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(isoString)) {
     const [year, month, day] = isoString.split('-').map(Number);
     const utcDate = new Date(Date.UTC(year, month - 1, day));
-    return utcDate.toLocaleDateString();
+    return utcDate.toLocaleDateString(undefined, { timeZone: 'UTC' });
   }
 
   const date = new Date(isoString);
   if (Number.isNaN(date.getTime())) return 'Unknown date';
-  return date.toLocaleDateString();
+  return date.toLocaleDateString(undefined, { timeZone: 'UTC' });
 }
 
 function fileBaseName(key) {
