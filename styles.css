@@ -117,9 +117,11 @@ body {
 
 .player-controls {
   display: grid;
-  grid-template-columns: auto minmax(140px, 1fr) minmax(96px, 180px) auto auto auto;
+  grid-template-columns: auto minmax(160px, 1fr) minmax(96px, 180px) auto auto auto;
+  grid-template-areas: 'play scrub volume volume-icon loop time';
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .scrub,
@@ -171,12 +173,36 @@ input[type='range'] {
   color: #b6c0d0;
 }
 
+.play-btn {
+  grid-area: play;
+}
+
+.scrub {
+  grid-area: scrub;
+}
+
+.volume {
+  grid-area: volume;
+}
+
+.volume-icon {
+  grid-area: volume-icon;
+}
+
+.loop-btn {
+  grid-area: loop;
+}
+
+.time {
+  grid-area: time;
+}
+
 .loop-btn.is-active {
   border-color: #7ca0ff;
   color: #7ca0ff;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 900px) {
   .artist-header {
     padding: 1rem;
   }
@@ -210,18 +236,10 @@ input[type='range'] {
   .player-controls {
     grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem;
     grid-template-areas:
-      'play time loop'
-      'scrub scrub scrub'
+      'play scrub loop'
+      'time time time'
       'volume-icon volume volume';
-    gap: 0.7rem 0.55rem;
-  }
-
-  .play-btn {
-    grid-area: play;
-  }
-
-  .loop-btn {
-    grid-area: loop;
+    gap: 0.65rem 0.65rem;
   }
 
   .play-btn,
@@ -231,20 +249,14 @@ input[type='range'] {
   }
 
   .scrub {
-    grid-area: scrub;
-  }
-
-  .volume {
-    grid-area: volume;
+    align-self: center;
   }
 
   .volume-icon {
-    grid-area: volume-icon;
     justify-self: center;
   }
 
   .time {
-    grid-area: time;
     min-width: 0;
     text-align: center;
   }
