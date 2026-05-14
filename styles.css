@@ -11,12 +11,13 @@ body {
   margin: 0;
   background: #101216;
   color: #eceff4;
+  -webkit-text-size-adjust: 100%;
 }
 
 .container {
-  max-width: 960px;
+  width: min(100%, 960px);
   margin: 0 auto;
-  padding: 1.25rem;
+  padding: clamp(0.75rem, 3vw, 1.25rem);
 }
 
 .artist-header {
@@ -48,9 +49,10 @@ body {
 #sortBy {
   border: 1px solid #3c4658;
   border-radius: 8px;
-  padding: 0.35rem 0.5rem;
+  padding: 0.5rem 0.65rem;
   background: #161b24;
   color: #eceff4;
+  font: inherit;
 }
 
 #status {
@@ -120,6 +122,12 @@ body {
   gap: 0.5rem;
 }
 
+.scrub,
+.volume {
+  min-width: 0;
+  width: 100%;
+}
+
 button,
 input[type='range'] {
   cursor: pointer;
@@ -133,8 +141,8 @@ input[type='range'] {
   padding: 0;
   margin: 0;
   color: #eceff4;
-  min-width: 2.25rem;
-  min-height: 2.25rem;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -169,22 +177,57 @@ input[type='range'] {
 }
 
 @media (max-width: 700px) {
+  .artist-header {
+    padding: 1rem;
+  }
+
+  .artist-header h1 {
+    font-size: clamp(1.6rem, 8vw, 2rem);
+    line-height: 1.1;
+  }
+
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.4rem;
+    justify-content: flex-start;
+  }
+
+  #sortBy {
+    width: 100%;
+  }
+
+  .track-item {
+    gap: 1rem;
+    padding: 0.75rem;
+  }
+
+  .track-meta {
+    align-items: flex-start;
+    gap: 0.65rem;
+  }
+
   .player-controls {
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem;
     grid-template-areas:
       'play time loop'
-      'scrub scrub'
-      'vol vol vol-icon';
+      'scrub scrub scrub'
+      'volume-icon volume volume';
+    gap: 0.7rem 0.55rem;
   }
 
   .play-btn {
     grid-area: play;
-    width: fit-content;
   }
 
   .loop-btn {
     grid-area: loop;
-    width: fit-content;
+  }
+
+  .play-btn,
+  .loop-btn {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
   }
 
   .scrub {
@@ -192,14 +235,47 @@ input[type='range'] {
   }
 
   .volume {
-    grid-area: vol;
+    grid-area: volume;
   }
 
   .volume-icon {
-    grid-area: vol-icon;
+    grid-area: volume-icon;
+    justify-self: center;
   }
 
   .time {
     grid-area: time;
+    min-width: 0;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .track-meta {
+    flex-direction: column;
+  }
+
+  .track-title-wrap {
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .track-title {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .track-date {
+    padding-left: calc(48px + 0.75rem);
+  }
+}
+
+@media (max-width: 360px) {
+  .track-date {
+    padding-left: 0;
+  }
+
+  .time {
+    font-size: 0.85rem;
   }
 }
