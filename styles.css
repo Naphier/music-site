@@ -70,6 +70,10 @@ body {
 
 .track-item {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'meta meta'
+    'controls time';
   gap: 0.8rem;
   background: #181c24;
   border-radius: 12px;
@@ -79,6 +83,7 @@ body {
 }
 
 .track-meta {
+  grid-area: meta;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -117,16 +122,16 @@ body {
 }
 
 .player-controls {
+  grid-area: controls;
   display: grid;
-  grid-template-columns: auto minmax(160px, 1fr) minmax(96px, 180px) auto auto auto;
-  grid-template-areas: 'play scrub volume volume-icon loop time';
+  grid-template-columns: auto minmax(160px, 1fr) auto;
+  grid-template-areas: 'play scrub loop';
   align-items: center;
   gap: 0.5rem;
   min-width: 0;
 }
 
-.scrub,
-.volume {
+.scrub {
   min-width: 0;
   width: 100%;
 }
@@ -160,18 +165,12 @@ input[type='range'] {
 }
 
 .time {
+  align-self: center;
+  color: #b6c0d0;
   font-variant-numeric: tabular-nums;
+  grid-area: time;
   min-width: 84px;
   text-align: right;
-  color: #b6c0d0;
-}
-
-.volume {
-  accent-color: #7ca0ff;
-}
-
-.volume-icon {
-  color: #b6c0d0;
 }
 
 .play-btn {
@@ -182,20 +181,8 @@ input[type='range'] {
   grid-area: scrub;
 }
 
-.volume {
-  grid-area: volume;
-}
-
-.volume-icon {
-  grid-area: volume-icon;
-}
-
 .loop-btn {
   grid-area: loop;
-}
-
-.time {
-  grid-area: time;
 }
 
 .loop-btn.is-active {
@@ -225,10 +212,11 @@ input[type='range'] {
   }
 
   .track-item {
+    grid-template-columns: auto minmax(0, 1fr);
     grid-template-areas:
-      'title'
-      'controls'
-      'date';
+      'title title'
+      'controls controls'
+      'time date';
     gap: 1rem;
     padding: 0.75rem;
   }
@@ -248,13 +236,9 @@ input[type='range'] {
   }
 
   .player-controls {
-    grid-area: controls;
     grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem;
-    grid-template-areas:
-      'play scrub loop'
-      'time time time'
-      'volume-icon volume volume';
-    gap: 0.65rem 0.65rem;
+    grid-template-areas: 'play scrub loop';
+    gap: 0.65rem;
   }
 
   .play-btn,
@@ -267,13 +251,11 @@ input[type='range'] {
     align-self: center;
   }
 
-  .volume-icon {
-    justify-self: center;
-  }
-
   .time {
+    align-self: end;
+    justify-self: start;
     min-width: 0;
-    text-align: center;
+    text-align: left;
   }
 }
 
