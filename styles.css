@@ -102,6 +102,7 @@ body {
 .track-date {
   color: #b6c0d0;
   font-size: 0.92rem;
+  font-style: italic;
   white-space: nowrap;
 }
 
@@ -224,16 +225,30 @@ input[type='range'] {
   }
 
   .track-item {
+    grid-template-areas:
+      'title'
+      'controls'
+      'date';
     gap: 1rem;
     padding: 0.75rem;
   }
 
   .track-meta {
-    align-items: flex-start;
-    gap: 0.65rem;
+    display: contents;
+  }
+
+  .track-title-wrap {
+    grid-area: title;
+  }
+
+  .track-date {
+    grid-area: date;
+    justify-self: end;
+    padding-left: 0;
   }
 
   .player-controls {
+    grid-area: controls;
     grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem;
     grid-template-areas:
       'play scrub loop'
@@ -278,7 +293,7 @@ input[type='range'] {
   }
 
   .track-date {
-    padding-left: calc(48px + 0.75rem);
+    padding-left: 0;
   }
 }
 
