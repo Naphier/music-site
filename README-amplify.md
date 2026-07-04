@@ -57,6 +57,8 @@ Recommended repository variables:
 | `TRACK_BUCKET_REGION` | `us-east-1` | Region for the audio-track S3 bucket. |
 | `TRACK_PREFIX` | empty | Optional S3 prefix for tracks, such as `tracks/`. |
 | `ENABLE_MOCK_MODE` | `true` | Shows mock tracks when no track bucket is configured. |
+| `ENABLE_CUSTOM_DOMAIN` | `false` | Keeps `music.naplandgames.com` enabled on future push-to-main deploys after you turn it on. |
+| `WAIT_FOR_DOMAIN_VERIFICATION` | `false` | Makes push-to-main deploys wait for Amplify DNS verification when desired. |
 
 The S3 bucket named by `TF_STATE_BUCKET` must exist before the first workflow run. This keeps Terraform state persistent across deploys.
 
@@ -84,7 +86,8 @@ After the AWS-generated Amplify URL is tested successfully:
 6. Log in to JaguarPC DNS for `naplandgames.com`.
 7. Add the Amplify-provided CNAME/subdomain-routing record and certificate-verification record exactly as shown.
 8. Wait for DNS propagation and Amplify certificate validation.
-9. After Amplify reports the domain as available, test:
+9. Set the repository variable `ENABLE_CUSTOM_DOMAIN` to `true` so future merges to `main` preserve the domain association.
+10. After Amplify reports the domain as available, test:
 
 ```text
 https://music.naplandgames.com
@@ -97,7 +100,7 @@ enable_custom_domain         = true
 wait_for_domain_verification = true
 ```
 
-This makes future Terraform runs wait for Amplify domain verification.
+This makes future Terraform runs wait for Amplify domain verification. Set the repository variable `WAIT_FOR_DOMAIN_VERIFICATION` to `true` only after the JaguarPC DNS records are in place.
 
 ## JaguarPC DNS notes
 
