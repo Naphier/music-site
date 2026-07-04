@@ -4,6 +4,13 @@ on:
   pull_request:
     paths:
       - 'terraform/**'
+      - '.github/workflows/terraform-check.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform-check.yml'
   workflow_dispatch:
 
 permissions:
