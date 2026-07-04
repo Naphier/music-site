@@ -1,0 +1,79 @@
+name: Terraform Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform-deploy.yml'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Terraform action to run'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+      enable_custom_domain:
+        description: 'Enable music.naplandgames.com custom domain'
+        required: true
+        default: false
+        type: boolean
+      wait_for_domain_verification:
+        description: 'Wait for Amplify domain verification'
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TF_IN_AUTOMATION: true
+  TF_INPUT: false
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+  TF_VAR_aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}
+  TF_VAR_github_access_token: ${{ secrets.AMPLIFY_GITHUB_ACCESS_TOKEN }}
+  TF_VAR_enable_custom_domain: ${{ github.event_name == 'workflow_dispatch' && inputs.enable_custom_domain || 'false' }}
+  TF_VAR_wait_for_domain_verification: ${{ github.event_name == 'workflow_dispatch' && inputs.wait_for_domain_verification || 'false' }}
+  TF_VAR_domain_name: naplandgames.com
+  TF_VAR_subdomain_prefix: music
+  TF_VAR_track_bucket_name: ${{ vars.TRACK_BUCKET_NAME || '' }}
+  TF_VAR_track_bucket_region: ${{ vars.TRACK_BUCKET_REGION || 'us-east-1' }}
+  TF_VAR_track_prefix: ${{ vars.TRACK_PREFIX || '' }}
+  TF_VAR_enable_mock_mode: ${{ vars.ENABLE_MOCK_MODE || 'true' }}
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+      - name: Terraform init
+        run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" -backend-config="key=music-site/amplify.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="encrypt=true"
+      - name: Terraform validate
+        run: terraform validate
+      - name: Terraform plan
+        run: terraform plan -out=tfplan
+      - name: Terraform apply on main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: terraform apply -auto-approve tfplan
+      - name: Terraform apply from manual dispatch
+        if: github.event_name == 'workflow_dispatch' && inputs.action == 'apply'
+        run: terraform apply -auto-approve tfplan
