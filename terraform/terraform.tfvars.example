@@ -1,0 +1,25 @@
+# Copy this file to terraform.tfvars for local use.
+# Do not commit terraform.tfvars because it may contain local or sensitive values.
+
+aws_region  = "us-east-1"
+app_name    = "music-site"
+repository  = "https://github.com/Naphier/music-site"
+branch_name = "main"
+
+# Set this through TF_VAR_github_access_token locally or the
+# AMPLIFY_GITHUB_ACCESS_TOKEN GitHub Actions secret in CI.
+# github_access_token = "ghp_example"
+
+# Leave empty for mock mode while testing the Amplify-hosted site.
+track_bucket_name   = ""
+track_bucket_region = "us-east-1"
+track_prefix        = ""
+enable_mock_mode    = true
+
+# External DNS dependency feature flag.
+# Keep this false until the AWS-generated Amplify URL has been tested and
+# you are ready to add DNS records in JaguarPC for music.naplandgames.com.
+enable_custom_domain         = false
+domain_name                  = "naplandgames.com"
+subdomain_prefix             = "music"
+wait_for_domain_verification = false
