@@ -38,8 +38,8 @@ env:
   AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
   TF_VAR_aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}
   TF_VAR_github_access_token: ${{ secrets.AMPLIFY_GITHUB_ACCESS_TOKEN }}
-  TF_VAR_enable_custom_domain: ${{ github.event_name == 'workflow_dispatch' && inputs.enable_custom_domain || 'false' }}
-  TF_VAR_wait_for_domain_verification: ${{ github.event_name == 'workflow_dispatch' && inputs.wait_for_domain_verification || 'false' }}
+  TF_VAR_enable_custom_domain: ${{ github.event_name == 'workflow_dispatch' && inputs.enable_custom_domain || vars.ENABLE_CUSTOM_DOMAIN || 'false' }}
+  TF_VAR_wait_for_domain_verification: ${{ github.event_name == 'workflow_dispatch' && inputs.wait_for_domain_verification || vars.WAIT_FOR_DOMAIN_VERIFICATION || 'false' }}
   TF_VAR_domain_name: naplandgames.com
   TF_VAR_subdomain_prefix: music
   TF_VAR_track_bucket_name: ${{ vars.TRACK_BUCKET_NAME || '' }}
