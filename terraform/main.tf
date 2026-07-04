@@ -27,15 +27,14 @@ resource "aws_amplify_app" "this" {
         preBuild:
           commands:
             - echo "Preparing static site configuration"
-            - sed -i "s|__DEPLOY_S3_BUCKET_NAME__|$${DEPLOY_S3_BUCKET_NAME}|g" app.js
-            - sed -i "s|__DEPLOY_S3_REGION__|$${DEPLOY_S3_REGION}|g" app.js
-            - sed -i "s|__DEPLOY_TRACKS_PREFIX__|$${DEPLOY_TRACKS_PREFIX}|g" app.js
-            - sed -i "s|__DEPLOY_ENABLE_MOCK_MODE__|$${DEPLOY_ENABLE_MOCK_MODE}|g" app.js
+            - mkdir -p dist
+            - cp index.html styles.css dist/
+            - sed "s|__DEPLOY_S3_BUCKET_NAME__|$${DEPLOY_S3_BUCKET_NAME}|g; s|__DEPLOY_S3_REGION__|$${DEPLOY_S3_REGION}|g; s|__DEPLOY_TRACKS_PREFIX__|$${DEPLOY_TRACKS_PREFIX}|g; s|__DEPLOY_ENABLE_MOCK_MODE__|$${DEPLOY_ENABLE_MOCK_MODE}|g" app.js > dist/app.js
         build:
           commands:
             - echo "No build step required for static site"
       artifacts:
-        baseDirectory: .
+        baseDirectory: dist
         files:
           - '**/*'
       cache:
