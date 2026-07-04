@@ -23,7 +23,12 @@ output "custom_domain_hostname" {
   value       = local.has_custom_domain ? "${var.subdomain_prefix}.${var.domain_name}" : null
 }
 
-output "custom_domain_dns_records" {
-  description = "DNS records returned by Amplify for the custom domain. Add these at JaguarPC after enabling the custom-domain feature flag."
+output "custom_domain_certificate_verification_dns_record" {
+  description = "Certificate validation DNS record returned by Amplify. Add this at JaguarPC after enabling the custom-domain feature flag."
   value       = local.has_custom_domain ? aws_amplify_domain_association.music[0].certificate_verification_dns_record : null
+}
+
+output "custom_domain_subdomain_dns_record" {
+  description = "Subdomain routing DNS record returned by Amplify for music.naplandgames.com. Add this at JaguarPC after enabling the custom-domain feature flag."
+  value       = local.has_custom_domain ? aws_amplify_domain_association.music[0].sub_domain[0].dns_record : null
 }
