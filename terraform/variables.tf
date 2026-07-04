@@ -1,5 +1,5 @@
 variable "aws_region" {
-  description = "AWS region used by the AWS provider. Amplify Hosting is global-ish, but the API is called through a region."
+  description = "AWS region used by the AWS provider. Amplify Hosting is managed globally, but the API is called through a region."
   type        = string
   default     = "us-east-1"
 }
@@ -52,14 +52,26 @@ variable "enable_mock_mode" {
   default     = true
 }
 
-variable "domain_name" {
-  description = "Optional apex custom domain for Amplify, for example example.com. Leave empty to skip custom domain setup."
-  type        = string
-  default     = ""
+variable "enable_custom_domain" {
+  description = "Feature flag for the external DNS dependency. Keep false until music.naplandgames.com is ready to be configured in JaguarPC DNS."
+  type        = bool
+  default     = false
 }
 
-variable "enable_www_subdomain" {
-  description = "When domain_name is set, also associate www.domain_name with the same Amplify branch."
+variable "domain_name" {
+  description = "Parent domain to associate with Amplify when enable_custom_domain is true. For music.naplandgames.com, use naplandgames.com."
+  type        = string
+  default     = "naplandgames.com"
+}
+
+variable "subdomain_prefix" {
+  description = "Subdomain prefix to associate with the Amplify branch when enable_custom_domain is true. For music.naplandgames.com, use music."
+  type        = string
+  default     = "music"
+}
+
+variable "wait_for_domain_verification" {
+  description = "Whether Terraform should wait for Amplify custom-domain DNS verification. Keep false until JaguarPC DNS records have been created."
   type        = bool
-  default     = true
+  default     = false
 }
