@@ -29,30 +29,22 @@ That AWS-generated hostname receives an Amplify-managed HTTPS certificate automa
 
 ## GitHub Actions setup
 
-The repo includes a safe validation workflow at:
+The repo includes two workflows:
 
 ```text
 .github/workflows/terraform-check.yml
-```
-
-The deploy workflow is checked in as a template at:
-
-```text
-docs/terraform-deploy.workflow.example.yml
-```
-
-To enable deployment, copy it to:
-
-```text
 .github/workflows/terraform-deploy.yml
 ```
 
-Then configure these repository-level secrets:
+`terraform-check.yml` runs formatting and validation checks on pull requests, manual dispatch, and pushes to `main`.
+
+`terraform-deploy.yml` can be triggered manually and also runs after this PR is merged to `main` when Terraform files change. A push to `main` applies the plan automatically. A manual run defaults to `plan`; choose `apply` only when you want to deploy changes.
+
+The deploy workflow uses GitHub Actions OIDC to assume an AWS role instead of storing long-lived AWS API keys in GitHub. Configure these repository-level secrets:
 
 | Secret | Purpose |
 | --- | --- |
-| `AWS_ACCESS_KEY_ID` | AWS access key used by GitHub Actions to run Terraform. |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret key used by GitHub Actions to run Terraform. |
+| `AWS_GITHUB_ACTIONS_ROLE_ARN` | IAM role ARN that GitHub Actions is allowed to assume through OIDC. |
 | `AMPLIFY_GITHUB_ACCESS_TOKEN` | GitHub token Amplify uses to connect this repository. |
 | `TF_STATE_BUCKET` | Existing S3 bucket used for Terraform remote state. |
 
@@ -70,7 +62,7 @@ The S3 bucket named by `TF_STATE_BUCKET` must exist before the first workflow ru
 
 ## Required AWS permissions
 
-The AWS principal used by GitHub Actions needs permissions for:
+The AWS role assumed by GitHub Actions needs permissions for:
 
 - Amplify app, branch, and domain-association management
 - S3 access to the Terraform state bucket
@@ -86,12 +78,13 @@ After the AWS-generated Amplify URL is tested successfully:
 2. Set `enable_custom_domain` to `true`.
 3. Keep `wait_for_domain_verification` as `false` for the first custom-domain apply.
 4. Apply Terraform.
-5. In AWS Amplify, open the app, then the domain association for `naplandgames.com`.
-6. Copy the DNS records Amplify provides for the `music` subdomain and certificate verification.
-7. Log in to JaguarPC DNS for `naplandgames.com`.
-8. Add the Amplify-provided CNAME and certificate-verification records exactly as shown by Amplify.
-9. Wait for DNS propagation and Amplify certificate validation.
-10. After Amplify reports the domain as available, test:
+5. Read the Terraform outputs:
+   - `custom_domain_subdomain_dns_record`
+   - `custom_domain_certificate_verification_dns_record`
+6. Log in to JaguarPC DNS for `naplandgames.com`.
+7. Add the Amplify-provided CNAME/subdomain-routing record and certificate-verification record exactly as shown.
+8. Wait for DNS propagation and Amplify certificate validation.
+9. After Amplify reports the domain as available, test:
 
 ```text
 https://music.naplandgames.com
