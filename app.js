@@ -224,20 +224,6 @@ function createTrackItem(track) {
   scrub.step = '0.1';
   scrub.setAttribute('aria-label', `Scrub ${track.title}`);
 
-  const volume = document.createElement('input');
-  volume.className = 'volume';
-  volume.type = 'range';
-  volume.min = '0';
-  volume.max = '1';
-  volume.step = '0.01';
-  volume.value = '1';
-  volume.setAttribute('aria-label', `Volume for ${track.title}`);
-
-  const volumeIcon = document.createElement('span');
-  volumeIcon.className = 'volume-icon';
-  volumeIcon.setAttribute('aria-hidden', 'true');
-  volumeIcon.textContent = '🔊';
-
   const loopBtn = document.createElement('button');
   loopBtn.className = 'loop-btn';
   loopBtn.type = 'button';
@@ -278,10 +264,6 @@ function createTrackItem(track) {
     );
   });
 
-  volume.addEventListener('input', () => {
-    audio.volume = Number(volume.value);
-  });
-
   scrub.addEventListener('input', () => {
     if (Number.isFinite(audio.duration) && audio.duration > 0) {
       audio.currentTime = (Number(scrub.value) / 100) * audio.duration;
@@ -315,8 +297,8 @@ function createTrackItem(track) {
     playBtn.innerHTML = '<span aria-hidden="true">▶</span>';
   });
 
-  controls.append(playBtn, scrub, volume, volumeIcon, loopBtn, timeLabel);
-  li.append(meta, controls, audio);
+  controls.append(playBtn, scrub, loopBtn);
+  li.append(meta, controls, timeLabel, audio);
 
   return li;
 }

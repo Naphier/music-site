@@ -11,12 +11,13 @@ body {
   margin: 0;
   background: #101216;
   color: #eceff4;
+  -webkit-text-size-adjust: 100%;
 }
 
 .container {
-  max-width: 960px;
+  width: min(100%, 960px);
   margin: 0 auto;
-  padding: 1.25rem;
+  padding: clamp(0.75rem, 3vw, 1.25rem);
 }
 
 .artist-header {
@@ -48,9 +49,10 @@ body {
 #sortBy {
   border: 1px solid #3c4658;
   border-radius: 8px;
-  padding: 0.35rem 0.5rem;
+  padding: 0.5rem 0.65rem;
   background: #161b24;
   color: #eceff4;
+  font: inherit;
 }
 
 #status {
@@ -68,6 +70,10 @@ body {
 
 .track-item {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'meta meta'
+    'controls time';
   gap: 0.8rem;
   background: #181c24;
   border-radius: 12px;
@@ -77,6 +83,7 @@ body {
 }
 
 .track-meta {
+  grid-area: meta;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -100,6 +107,7 @@ body {
 .track-date {
   color: #b6c0d0;
   font-size: 0.92rem;
+  font-style: italic;
   white-space: nowrap;
 }
 
@@ -114,10 +122,18 @@ body {
 }
 
 .player-controls {
+  grid-area: controls;
   display: grid;
-  grid-template-columns: auto minmax(140px, 1fr) minmax(96px, 180px) auto auto auto;
+  grid-template-columns: auto minmax(160px, 1fr) auto;
+  grid-template-areas: 'play scrub loop';
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
+}
+
+.scrub {
+  min-width: 0;
+  width: 100%;
 }
 
 button,
@@ -133,8 +149,8 @@ input[type='range'] {
   padding: 0;
   margin: 0;
   color: #eceff4;
-  min-width: 2.25rem;
-  min-height: 2.25rem;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -149,18 +165,24 @@ input[type='range'] {
 }
 
 .time {
+  align-self: center;
+  color: #b6c0d0;
   font-variant-numeric: tabular-nums;
+  grid-area: time;
   min-width: 84px;
   text-align: right;
-  color: #b6c0d0;
 }
 
-.volume {
-  accent-color: #7ca0ff;
+.play-btn {
+  grid-area: play;
 }
 
-.volume-icon {
-  color: #b6c0d0;
+.scrub {
+  grid-area: scrub;
+}
+
+.loop-btn {
+  grid-area: loop;
 }
 
 .loop-btn.is-active {
@@ -168,38 +190,101 @@ input[type='range'] {
   color: #7ca0ff;
 }
 
-@media (max-width: 700px) {
-  .player-controls {
-    grid-template-columns: auto 1fr auto;
+@media (max-width: 900px) {
+  .artist-header {
+    padding: 1rem;
+  }
+
+  .artist-header h1 {
+    font-size: clamp(1.6rem, 8vw, 2rem);
+    line-height: 1.1;
+  }
+
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.4rem;
+    justify-content: flex-start;
+  }
+
+  #sortBy {
+    width: 100%;
+  }
+
+  .track-item {
+    grid-template-columns: auto minmax(0, 1fr);
     grid-template-areas:
-      'play time loop'
-      'scrub scrub'
-      'vol vol vol-icon';
+      'title title'
+      'controls controls'
+      'time date';
+    gap: 1rem;
+    padding: 0.75rem;
   }
 
-  .play-btn {
-    grid-area: play;
-    width: fit-content;
+  .track-meta {
+    display: contents;
   }
 
+  .track-title-wrap {
+    grid-area: title;
+  }
+
+  .track-date {
+    grid-area: date;
+    justify-self: end;
+    padding-left: 0;
+  }
+
+  .player-controls {
+    grid-template-columns: 2.75rem minmax(0, 1fr) 2.75rem;
+    grid-template-areas: 'play scrub loop';
+    gap: 0.65rem;
+  }
+
+  .play-btn,
   .loop-btn {
-    grid-area: loop;
-    width: fit-content;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
   }
 
   .scrub {
-    grid-area: scrub;
-  }
-
-  .volume {
-    grid-area: vol;
-  }
-
-  .volume-icon {
-    grid-area: vol-icon;
+    align-self: center;
   }
 
   .time {
-    grid-area: time;
+    align-self: end;
+    justify-self: start;
+    min-width: 0;
+    text-align: left;
+  }
+}
+
+@media (max-width: 480px) {
+  .track-meta {
+    flex-direction: column;
+  }
+
+  .track-title-wrap {
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .track-title {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .track-date {
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 360px) {
+  .track-date {
+    padding-left: 0;
+  }
+
+  .time {
+    font-size: 0.85rem;
   }
 }
