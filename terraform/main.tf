@@ -1,21 +1,5 @@
 locals {
-  has_custom_domain = trimspace(var.domain_name) != ""
-
-  domain_subdomains = var.enable_www_subdomain ? [
-    {
-      branch_name = var.branch_name
-      prefix      = ""
-    },
-    {
-      branch_name = var.branch_name
-      prefix      = "www"
-    }
-  ] : [
-    {
-      branch_name = var.branch_name
-      prefix      = ""
-    }
-  ]
+  has_custom_domain = var.enable_custom_domain && trimspace(var.domain_name) != "" && trimspace(var.subdomain_prefix) != ""
 }
 
 resource "aws_amplify_app" "this" {
@@ -28,9 +12,9 @@ resource "aws_amplify_app" "this" {
   enable_branch_auto_build = true
 
   environment_variables = {
-    DEPLOY_S3_BUCKET_NAME  = var.track_bucket_name
-    DEPLOY_S3_REGION       = var.track_bucket_region
-    DEPLOY_TRACKS_PREFIX   = var.track_prefix
+    DEPLOY_S3_BUCKET_NAME   = var.track_bucket_name
+    DEPLOY_S3_REGION        = var.track_bucket_region
+    DEPLOY_TRACKS_PREFIX    = var.track_prefix
     DEPLOY_ENABLE_MOCK_MODE = tostring(var.enable_mock_mode)
   }
 
@@ -75,24 +59,20 @@ resource "aws_amplify_branch" "main" {
   stage             = "PRODUCTION"
 }
 
-resource "aws_amplify_domain_association" "this" {
+resource "aws_amplify_domain_association" "music" {
   count = local.has_custom_domain ? 1 : 0
 
   app_id      = aws_amplify_app.this.id
   domain_name = var.domain_name
 
-  # Leave verification to DNS setup after Terraform creates the association.
-  # Set to true locally if your DNS records are already in place and you want
-  # Terraform to wait for Amplify domain verification.
-  wait_for_verification = false
+  # This is false by default because JaguarPC DNS is an external dependency.
+  # After the DNS records exist, set wait_for_domain_verification=true if you
+  # want Terraform to block until Amplify verifies the custom domain.
+  wait_for_verification = var.wait_for_domain_verification
 
-  dynamic "sub_domain" {
-    for_each = local.domain_subdomains
-
-    content {
-      branch_name = sub_domain.value.branch_name
-      prefix      = sub_domain.value.prefix
-    }
+  sub_domain {
+    branch_name = aws_amplify_branch.main.branch_name
+    prefix      = var.subdomain_prefix
   }
 
   depends_on = [aws_amplify_branch.main]
