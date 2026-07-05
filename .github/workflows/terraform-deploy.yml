@@ -7,6 +7,9 @@ on:
     paths:
       - 'terraform/**'
       - '.github/workflows/terraform-deploy.yml'
+      - 'index.html'
+      - 'styles.css'
+      - 'app.js'
   workflow_dispatch:
     inputs:
       action:
@@ -17,13 +20,13 @@ on:
         options:
           - plan
           - apply
-      enable_custom_domain:
-        description: 'Enable music.naplandgames.com custom domain'
+      create_custom_domain_certificate:
+        description: 'Request ACM certificate for music.naplandgames.com'
         required: true
         default: false
         type: boolean
-      wait_for_domain_verification:
-        description: 'Wait for Amplify domain verification'
+      enable_custom_domain:
+        description: 'Enable music.naplandgames.com CloudFront alias'
         required: true
         default: false
         type: boolean
@@ -37,19 +40,21 @@ env:
   TF_INPUT: false
   AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
   TF_VAR_aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}
-  TF_VAR_github_access_token: ${{ secrets.AMPLIFY_GITHUB_ACCESS_TOKEN }}
-  TF_VAR_enable_custom_domain: ${{ github.event_name == 'workflow_dispatch' && inputs.enable_custom_domain || vars.ENABLE_CUSTOM_DOMAIN || 'false' }}
-  TF_VAR_wait_for_domain_verification: ${{ github.event_name == 'workflow_dispatch' && inputs.wait_for_domain_verification || vars.WAIT_FOR_DOMAIN_VERIFICATION || 'false' }}
-  TF_VAR_domain_name: naplandgames.com
-  TF_VAR_subdomain_prefix: music
+  TF_VAR_site_bucket_name: ${{ vars.SITE_BUCKET_NAME }}
   TF_VAR_track_bucket_name: ${{ vars.TRACK_BUCKET_NAME || '' }}
   TF_VAR_track_bucket_region: ${{ vars.TRACK_BUCKET_REGION || 'us-east-1' }}
   TF_VAR_track_prefix: ${{ vars.TRACK_PREFIX || '' }}
   TF_VAR_enable_mock_mode: ${{ vars.ENABLE_MOCK_MODE || 'true' }}
+  TF_VAR_create_custom_domain_certificate: ${{ github.event_name == 'workflow_dispatch' && inputs.create_custom_domain_certificate || vars.CREATE_CUSTOM_DOMAIN_CERTIFICATE || 'false' }}
+  TF_VAR_enable_custom_domain: ${{ github.event_name == 'workflow_dispatch' && inputs.enable_custom_domain || vars.ENABLE_CUSTOM_DOMAIN || 'false' }}
+  TF_VAR_custom_domain_name: ${{ vars.CUSTOM_DOMAIN_NAME || 'music.naplandgames.com' }}
+  TF_VAR_custom_domain_certificate_arn: ${{ vars.CUSTOM_DOMAIN_CERTIFICATE_ARN || '' }}
 
 jobs:
   terraform:
     runs-on: ubuntu-latest
+    outputs:
+      distribution_id: ${{ steps.tf-output.outputs.distribution_id }}
     defaults:
       run:
         working-directory: terraform
@@ -63,10 +68,10 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
-      - name: Terraform fmt
+      - name: Terraform format check
         run: terraform fmt -check -recursive
       - name: Terraform init
-        run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" -backend-config="key=music-site/amplify.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="encrypt=true"
+        run: terraform init -backend-config="bucket=${{ secrets.TF_STATE_BUCKET }}" -backend-config="key=music-site/cloudfront.tfstate" -backend-config="region=${{ env.AWS_REGION }}" -backend-config="encrypt=true"
       - name: Terraform validate
         run: terraform validate
       - name: Terraform plan
@@ -77,3 +82,29 @@ jobs:
       - name: Terraform apply from manual dispatch
         if: github.event_name == 'workflow_dispatch' && inputs.action == 'apply'
         run: terraform apply -auto-approve tfplan
+      - name: Capture CloudFront distribution ID
+        id: tf-output
+        if: github.event_name == 'push' || inputs.action == 'apply'
+        run: echo "distribution_id=$(terraform output -raw cloudfront_distribution_id)" >> "$GITHUB_OUTPUT"
+
+  deploy-static-site:
+    needs: terraform
+    if: github.event_name == 'push' || inputs.action == 'apply'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Build static artifact
+        run: |
+          mkdir -p dist
+          cp index.html styles.css dist/
+          sed "s|__DEPLOY_S3_BUCKET_NAME__|${{ vars.TRACK_BUCKET_NAME || '' }}|g; s|__DEPLOY_S3_REGION__|${{ vars.TRACK_BUCKET_REGION || 'us-east-1' }}|g; s|__DEPLOY_TRACKS_PREFIX__|${{ vars.TRACK_PREFIX || '' }}|g; s|__DEPLOY_ENABLE_MOCK_MODE__|${{ vars.ENABLE_MOCK_MODE || 'true' }}|g" app.js > dist/app.js
+      - name: Upload static artifact to S3
+        run: aws s3 sync dist/ "s3://${{ vars.SITE_BUCKET_NAME }}/" --delete
+      - name: Invalidate CloudFront cache
+        run: aws cloudfront create-invalidation --distribution-id "${{ needs.terraform.outputs.distribution_id }}" --paths '/*'
