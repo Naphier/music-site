@@ -1,78 +1,91 @@
 locals {
-  has_custom_domain = var.enable_custom_domain && trimspace(var.domain_name) != "" && trimspace(var.subdomain_prefix) != ""
+  has_requested_certificate = var.create_custom_domain_certificate
+  has_custom_domain         = var.enable_custom_domain && trimspace(var.custom_domain_name) != ""
+  created_certificate_arn   = local.has_requested_certificate ? aws_acm_certificate.custom_domain[0].arn : ""
+  viewer_certificate_arn    = trimspace(var.custom_domain_certificate_arn) != "" ? var.custom_domain_certificate_arn : local.created_certificate_arn
 }
 
-resource "aws_amplify_app" "this" {
-  name       = var.app_name
-  repository = var.repository
+data "aws_s3_bucket" "site" {
+  bucket = var.site_bucket_name
+}
 
-  # Set with TF_VAR_github_access_token rather than committing a token.
-  access_token = var.github_access_token
+resource "aws_acm_certificate" "custom_domain" {
+  count = local.has_requested_certificate ? 1 : 0
 
-  enable_branch_auto_build = true
+  provider          = aws.use1
+  domain_name       = var.custom_domain_name
+  validation_method = "DNS"
 
-  environment_variables = {
-    DEPLOY_S3_BUCKET_NAME   = var.track_bucket_name
-    DEPLOY_S3_REGION        = var.track_bucket_region
-    DEPLOY_TRACKS_PREFIX    = var.track_prefix
-    DEPLOY_ENABLE_MOCK_MODE = tostring(var.enable_mock_mode)
-  }
-
-  # This repo is a static HTML/CSS/JS site. The preBuild step replaces the
-  # deployment placeholders in app.js with Amplify environment variables.
-  build_spec = <<-YAML
-    version: 1
-    frontend:
-      phases:
-        preBuild:
-          commands:
-            - echo "Preparing static site configuration"
-            - mkdir -p dist
-            - cp index.html styles.css dist/
-            - sed "s|__DEPLOY_S3_BUCKET_NAME__|$${DEPLOY_S3_BUCKET_NAME}|g; s|__DEPLOY_S3_REGION__|$${DEPLOY_S3_REGION}|g; s|__DEPLOY_TRACKS_PREFIX__|$${DEPLOY_TRACKS_PREFIX}|g; s|__DEPLOY_ENABLE_MOCK_MODE__|$${DEPLOY_ENABLE_MOCK_MODE}|g" app.js > dist/app.js
-        build:
-          commands:
-            - echo "No build step required for static site"
-      artifacts:
-        baseDirectory: dist
-        files:
-          - '**/*'
-      cache:
-        paths: []
-  YAML
-
-  custom_rule {
-    source = "/<*>"
-    target = "/index.html"
-    status = "404-200"
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
-resource "aws_amplify_branch" "main" {
-  app_id      = aws_amplify_app.this.id
-  branch_name = var.branch_name
+resource "aws_cloudfront_distribution" "site" {
+  enabled             = true
+  is_ipv6_enabled     = true
+  comment             = "music-site static website"
+  default_root_object = "index.html"
+  price_class         = var.price_class
+  aliases             = local.has_custom_domain ? [var.custom_domain_name] : []
 
-  display_name      = var.branch_name
-  enable_auto_build = true
-  framework         = "Web"
-  stage             = "PRODUCTION"
-}
+  origin {
+    origin_id   = "site-s3-origin"
+    domain_name = data.aws_s3_bucket.site.bucket_regional_domain_name
 
-resource "aws_amplify_domain_association" "music" {
-  count = local.has_custom_domain ? 1 : 0
-
-  app_id      = aws_amplify_app.this.id
-  domain_name = var.domain_name
-
-  # This is false by default because JaguarPC DNS is an external dependency.
-  # After the DNS records exist, set wait_for_domain_verification=true if you
-  # want Terraform to block until Amplify verifies the custom domain.
-  wait_for_verification = var.wait_for_domain_verification
-
-  sub_domain {
-    branch_name = aws_amplify_branch.main.branch_name
-    prefix      = var.subdomain_prefix
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "https-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
   }
 
-  depends_on = [aws_amplify_branch.main]
+  default_cache_behavior {
+    target_origin_id       = "site-s3-origin"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = true
+
+    forwarded_values {
+      query_string = false
+
+      cookies {
+        forward = "none"
+      }
+    }
+  }
+
+  custom_error_response {
+    error_code         = 403
+    response_code      = 200
+    response_page_path = "/index.html"
+  }
+
+  custom_error_response {
+    error_code         = 404
+    response_code      = 200
+    response_page_path = "/index.html"
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = !local.has_custom_domain
+    acm_certificate_arn            = local.has_custom_domain ? local.viewer_certificate_arn : null
+    ssl_support_method             = local.has_custom_domain ? "sni-only" : null
+    minimum_protocol_version       = local.has_custom_domain ? "TLSv1.2_2021" : null
+  }
+
+  lifecycle {
+    precondition {
+      condition     = !local.has_custom_domain || trimspace(local.viewer_certificate_arn) != ""
+      error_message = "enable_custom_domain requires either create_custom_domain_certificate=true or custom_domain_certificate_arn to be set."
+    }
+  }
 }
