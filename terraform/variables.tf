@@ -1,31 +1,12 @@
 variable "aws_region" {
-  description = "AWS region used by the AWS provider. Amplify Hosting is managed globally, but the API is called through a region."
+  description = "AWS region for regional resources and the Terraform state bucket. CloudFront is global and ACM for CloudFront uses us-east-1."
   type        = string
   default     = "us-east-1"
 }
 
-variable "app_name" {
-  description = "Amplify app name."
+variable "site_bucket_name" {
+  description = "Existing S3 bucket that stores the static website files. GitHub Actions syncs the built site files here."
   type        = string
-  default     = "music-site"
-}
-
-variable "repository" {
-  description = "GitHub repository URL for the site."
-  type        = string
-  default     = "https://github.com/Naphier/music-site"
-}
-
-variable "branch_name" {
-  description = "Git branch Amplify should deploy."
-  type        = string
-  default     = "main"
-}
-
-variable "github_access_token" {
-  description = "GitHub personal access token used by Amplify to connect to the repository. Prefer setting this with TF_VAR_github_access_token."
-  type        = string
-  sensitive   = true
 }
 
 variable "track_bucket_name" {
@@ -52,26 +33,32 @@ variable "enable_mock_mode" {
   default     = true
 }
 
+variable "custom_domain_name" {
+  description = "Custom hostname to use later after DNS is configured in JaguarPC."
+  type        = string
+  default     = "music.naplandgames.com"
+}
+
+variable "create_custom_domain_certificate" {
+  description = "Feature flag that requests an ACM certificate in us-east-1 and outputs DNS validation records. This can be enabled before the CloudFront alias is enabled."
+  type        = bool
+  default     = false
+}
+
 variable "enable_custom_domain" {
-  description = "Feature flag for the external DNS dependency. Keep false until music.naplandgames.com is ready to be configured in JaguarPC DNS."
+  description = "Feature flag that adds custom_domain_name as a CloudFront alternate domain name. Enable only after the ACM certificate is issued."
   type        = bool
   default     = false
 }
 
-variable "domain_name" {
-  description = "Parent domain to associate with Amplify when enable_custom_domain is true. For music.naplandgames.com, use naplandgames.com."
+variable "custom_domain_certificate_arn" {
+  description = "Optional existing us-east-1 ACM certificate ARN for custom_domain_name. Leave empty to use the certificate created by this Terraform configuration."
   type        = string
-  default     = "naplandgames.com"
+  default     = ""
 }
 
-variable "subdomain_prefix" {
-  description = "Subdomain prefix to associate with the Amplify branch when enable_custom_domain is true. For music.naplandgames.com, use music."
+variable "price_class" {
+  description = "CloudFront price class. PriceClass_100 is usually sufficient for a very low traffic personal/static site."
   type        = string
-  default     = "music"
-}
-
-variable "wait_for_domain_verification" {
-  description = "Whether Terraform should wait for Amplify custom-domain DNS verification. Keep false until JaguarPC DNS records have been created."
-  type        = bool
-  default     = false
+  default     = "PriceClass_100"
 }
