@@ -30,5 +30,5 @@ output "custom_domain_certificate_verification_dns_record" {
 
 output "custom_domain_subdomain_dns_record" {
   description = "Subdomain routing DNS record returned by Amplify for music.naplandgames.com. Add this at JaguarPC after enabling the custom-domain feature flag."
-  value       = local.has_custom_domain ? aws_amplify_domain_association.music[0].sub_domain[0].dns_record : null
+  value       = local.has_custom_domain ? one(aws_amplify_domain_association.music[0].sub_domain[*].dns_record) : null
 }
