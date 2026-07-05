@@ -1,25 +1,23 @@
 # Copy this file to terraform.tfvars for local use.
 # Do not commit terraform.tfvars because it may contain local or sensitive values.
 
-aws_region  = "us-east-1"
-app_name    = "music-site"
-repository  = "https://github.com/Naphier/music-site"
-branch_name = "main"
+aws_region       = "us-east-1"
+site_bucket_name = "YOUR_EXISTING_SITE_BUCKET"
 
-# Set this through TF_VAR_github_access_token locally or the
-# AMPLIFY_GITHUB_ACCESS_TOKEN GitHub Actions secret in CI.
-# github_access_token = "ghp_example"
-
-# Leave empty for mock mode while testing the Amplify-hosted site.
+# Leave empty for mock mode while testing the CloudFront-hosted site.
 track_bucket_name   = ""
 track_bucket_region = "us-east-1"
 track_prefix        = ""
 enable_mock_mode    = true
 
-# External DNS dependency feature flag.
-# Keep this false until the AWS-generated Amplify URL has been tested and
-# you are ready to add DNS records in JaguarPC for music.naplandgames.com.
-enable_custom_domain         = false
-domain_name                  = "naplandgames.com"
-subdomain_prefix             = "music"
-wait_for_domain_verification = false
+# Stage 1: keep custom domain disabled and test the CloudFront default URL.
+custom_domain_name                = "music.naplandgames.com"
+create_custom_domain_certificate = false
+enable_custom_domain             = false
+custom_domain_certificate_arn    = ""
+
+# Stage 2: set create_custom_domain_certificate=true, apply, and add the
+# certificate validation records in JaguarPC DNS.
+
+# Stage 3: after ACM reports the certificate as issued, set
+# enable_custom_domain=true and add the CNAME output in JaguarPC DNS.
