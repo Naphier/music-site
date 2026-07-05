@@ -1,0 +1,9 @@
+# Obsolete workflow template placeholder
+
+The executable CloudFront/S3 deploy workflow lives at:
+
+```text
+.github/workflows/terraform-deploy.yml
+```
+
+This placeholder only exists because the prior Amplify workflow template could not be deleted through the connector during review. It is not used by GitHub Actions and can be removed later.
